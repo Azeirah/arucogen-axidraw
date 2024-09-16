@@ -1,47 +1,43 @@
-function generateMarkerSvg(width, height, bits, fixPdfArtifacts = true) {
+function drawRect(target, x, y, hatches) {
+	const pixel = document.createElementNS("http://www.w3.org/2000/svg", "path");
+	pixel.setAttribute("d", `M${x} ${y} h10 v10 h-10 Z`);
+	const dy = 10 / hatches;
+	for (let n = 0; n < hatches; n++) {
+		const hatchFillLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		hatchFillLine.setAttribute("d", `M${x} ${y + (n * dy)} h10 Z`);
+		hatchFillLine.setAttribute("stroke", "black");
+		hatchFillLine.setAttribute("stroke-width", 0.5);
+		hatchFillLine.setAttribute("fill", "none");
+		target.appendChild(hatchFillLine);
+	}
+	pixel.setAttribute("stroke", "black");
+	pixel.setAttribute('stroke-width', 0.5);
+	pixel.setAttribute("fill", 'none');
+	target.appendChild(pixel);
+}
+
+function generateMarkerSvg(width, height, bits, mm) {
 	var svg = document.createElement('svg');
-	svg.setAttribute('viewBox', '0 0 ' + (width + 2) + ' ' + (height + 2));
+	svg.setAttribute('viewBox', '0 0 ' + (width * 10 + 20) + ' ' + (height * 10 + 20));
 	svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
 	svg.setAttribute('shape-rendering', 'crispEdges');
 
+	const lines = mm / 20;
+
+	for (let i = 0; i < height + 2; i++) {
+		for (let j = 0; j < width + 2; j++) {
+			if (i === 0 || j === 0 || i === height + 1|| j === width + 1) {
+				drawRect(svg, j * 10, i * 10, lines);
+			}
+		}
+	}
+
 	// Background rect
-	var rect = document.createElement('rect');
-	rect.setAttribute('x', 0);
-	rect.setAttribute('y', 0);
-	rect.setAttribute('width', width + 2);
-	rect.setAttribute('height', height + 2);
-	rect.setAttribute('fill', 'black');
-	svg.appendChild(rect);
-
-	// "Pixels"
-	for (var i = 0; i < height; i++) {
-		for (var j = 0; j < width; j++) {
-			var white = bits[i * height + j];
-			if (!white) continue;
-
-			var pixel = document.createElement('rect');;
-			pixel.setAttribute('width', 1);
-			pixel.setAttribute('height', 1);
-			pixel.setAttribute('x', j + 1);
-			pixel.setAttribute('y', i + 1);
-			pixel.setAttribute('fill', 'white');
-			svg.appendChild(pixel);
-
-			if (!fixPdfArtifacts) continue;
-
-			if ((j < width - 1) && (bits[i * height + j + 1])) {
-				pixel.setAttribute('width', 1.5);
-			}
-
-			if ((i < height - 1) && (bits[(i + 1) * height + j])) {
-				var pixel2 = document.createElement('rect');;
-				pixel2.setAttribute('width', 1);
-				pixel2.setAttribute('height', 1.5);
-				pixel2.setAttribute('x', j + 1);
-				pixel2.setAttribute('y', i + 1);
-				pixel2.setAttribute('fill', 'white');
-				svg.appendChild(pixel2);
-			}
+	for (let i = 0; i < height; i++) {
+		for (let j = 0; j < width; j++) {
+			const white = bits[i * height + j];
+			if (white) continue;
+			drawRect(svg, j * 10 + 10, i * 10 + 10, lines);
 		}
 	}
 
@@ -50,7 +46,7 @@ function generateMarkerSvg(width, height, bits, fixPdfArtifacts = true) {
 
 var dict;
 
-function generateArucoMarker(width, height, dictName, id) {
+function generateArucoMarker(width, height, dictName, id, mm) {
 	console.log('Generate ArUco marker ' + dictName + ' ' + id);
 
 	var bytes = dict[dictName][id];
@@ -65,7 +61,7 @@ function generateArucoMarker(width, height, dictName, id) {
 		}
 	}
 
-	return generateMarkerSvg(width, height, bits);
+	return generateMarkerSvg(width, height, bits, mm);
 }
 
 // Fetch markers dict
